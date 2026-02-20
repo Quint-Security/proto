@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+package quint.v1;
+
+option go_package = "github.com/Quint-Security/quint-proto/gen/go/quint/v1;quintv1";
+
+import "quint/v1/audit.proto";
+import "quint/v1/policy.proto";
+
+// ── Proxy Messages ──────────────────────────────────────────────
+
+// Normalized representation of an intercepted JSON-RPC message.
+// The proxy parses raw JSON-RPC into this before policy evaluation.
+message InterceptedMessage {
+  string raw_json    = 1; // original JSON-RPC line
+  string method      = 2; // JSON-RPC method
+  string message_id  = 3; // JSON-RPC id
+  string tool_name   = 4; // extracted tool name (empty if not tools/call)
+  string arguments_json = 5; // extracted tool arguments
+  Direction direction = 6;
+  MessageType type    = 7;
+}
+
+enum MessageType {
+  MESSAGE_TYPE_UNSPECIFIED = 0;
+  MESSAGE_TYPE_REQUEST     = 1;
+  MESSAGE_TYPE_RESPONSE    = 2;
+  MESSAGE_TYPE_NOTIFICATION = 3;
+}
+
+// Result of policy evaluation on an intercepted message.
+message PolicyDecision {
+  InterceptedMessage message       = 1;
+  Verdict            verdict       = 2;
+  string             matched_server = 3; // which server policy matched
+  string             matched_rule   = 4; // which tool rule matched (empty = default)
+  string             policy_hash    = 5; // SHA-256 of active policy
+}
+
+// ── Proxy Service (future gRPC) ─────────────────────────────────
+
+// For future use: if Quint evolves beyond stdio to a daemon model,
+// the CLI and UI can communicate with the proxy over gRPC.
+service QuintProxy {
+  // Query the audit log
+  rpc QueryAuditLog(QueryAuditLogRequest) returns (QueryAuditLogResponse);
+  // Verify audit entry signatures and chain
+  rpc VerifyAuditLog(VerifyAuditLogRequest) returns (VerifyAuditLogResponse);
+  // Get current proxy status
+  rpc GetStatus(GetStatusRequest) returns (GetStatusResponse);
+}
+
+message QueryAuditLogRequest {
+  string server   = 1;
+  string tool     = 2;
+  string verdict  = 3;
+  string since    = 4; // ISO-8601
+  int32  limit    = 5;
+}
+
+message QueryAuditLogResponse {
+  repeated AuditEntry entries = 1;
+  int32 total_count           = 2;
+}
+
+message VerifyAuditLogRequest {
+  int64 start_id     = 1;
+  int64 end_id       = 2;
+  bool  verify_chain = 3;
+}
+
+message VerifyAuditLogResponse {
+  int32 total_checked     = 1;
+  int32 signatures_valid  = 2;
+  int32 signatures_invalid = 3;
+  int32 chain_links_valid  = 4;
+  int32 chain_links_broken = 5;
+  repeated ChainError errors = 6;
+}
+
+message ChainError {
+  int64  entry_id    = 1;
+  string error_type  = 2; // "signature" | "chain"
+  string description = 3;
+}
+
+message GetStatusRequest {}
+
+message GetStatusResponse {
+  string data_dir       = 1;
+  string public_key     = 2;
+  string fingerprint    = 3;
+  int64  entry_count    = 4;
+  PolicyConfig policy   = 5;
+  bool   keys_loaded    = 6;
+}

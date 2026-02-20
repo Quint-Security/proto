@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package quint.v1;
+
+option go_package = "github.com/Quint-Security/quint-proto/gen/go/quint/v1;quintv1";
+
+// ── Audit Log ───────────────────────────────────────────────────
+
+// A single signed, chain-linked audit entry.
+// Every tool call intercepted by the proxy produces one or more of these.
+message AuditEntry {
+  int64  id              = 1;
+  string timestamp       = 2;  // ISO-8601 UTC
+  string server_name     = 3;  // e.g. "builder-mcp"
+  Direction direction    = 4;
+  string method          = 5;  // JSON-RPC method, e.g. "tools/call"
+  string message_id      = 6;  // JSON-RPC id (empty for notifications)
+  string tool_name       = 7;  // extracted tool name (empty if not tools/call)
+  string arguments_json  = 8;  // tool arguments as JSON string
+  string response_json   = 9;  // server response as JSON string
+  Verdict verdict        = 10;
+  string policy_hash     = 11; // SHA-256 of active policy at time of action
+  string prev_hash       = 12; // SHA-256 of previous entry's signature (chain link)
+  string signature       = 13; // Ed25519 signature over canonical entry
+  string public_key      = 14; // signer's public key (SPKI PEM)
+}
+
+enum Direction {
+  DIRECTION_UNSPECIFIED = 0;
+  DIRECTION_REQUEST     = 1;
+  DIRECTION_RESPONSE    = 2;
+}
+
+enum Verdict {
+  VERDICT_UNSPECIFIED = 0;
+  VERDICT_ALLOW       = 1;
+  VERDICT_DENY        = 2;
+  VERDICT_PASSTHROUGH  = 3;
+}
+
+// A bundle of audit entries for export and offline verification.
+message AuditBundle {
+  repeated AuditEntry entries    = 1;
+  string              public_key = 2; // signer's public key
+  string              exported_at = 3; // ISO-8601 timestamp
+}

@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package quint.v1;
+
+option go_package = "github.com/Quint-Security/quint-proto/gen/go/quint/v1;quintv1";
+
+// ── Policy Configuration ────────────────────────────────────────
+
+// Top-level policy config. Loaded from policy.json / policy.pb.
+message PolicyConfig {
+  int32          version   = 1;
+  string         data_dir  = 2;
+  LogLevel       log_level = 3;
+  repeated ServerPolicy servers = 4;
+}
+
+message ServerPolicy {
+  string             server         = 1; // server name or "*" wildcard
+  Action             default_action = 2;
+  repeated ToolRule  tools          = 3;
+}
+
+message ToolRule {
+  string tool   = 1; // tool name or "*" wildcard
+  Action action = 2;
+}
+
+enum Action {
+  ACTION_UNSPECIFIED = 0;
+  ACTION_ALLOW       = 1;
+  ACTION_DENY        = 2;
+}
+
+enum LogLevel {
+  LOG_LEVEL_UNSPECIFIED = 0;
+  LOG_LEVEL_DEBUG       = 1;
+  LOG_LEVEL_INFO        = 2;
+  LOG_LEVEL_WARN        = 3;
+  LOG_LEVEL_ERROR       = 4;
+}
