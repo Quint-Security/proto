@@ -6,8 +6,10 @@ Protobuf schema definitions for Quint — the shared contract between all Quint 
 
 | File | What it defines |
 |------|----------------|
+| `common.proto` | `JsonRpcRequest/Response`, shared enums (`Action`, `Verdict`, `Direction`, `LogLevel`), `McpToolCall`, `KeyPair` |
 | `audit.proto` | `AuditEntry`, `AuditBundle` — the signed, chain-linked audit receipt format |
 | `policy.proto` | `PolicyConfig`, `ServerPolicy`, `ToolRule` — access control rules |
+| `auth.proto` | `PasskeyChallenge/Credential`, `ApiKey`, `Session` — authentication and session management |
 | `proxy.proto` | `InterceptedMessage`, `PolicyDecision`, `QuintProxy` gRPC service |
 
 ## Generate code

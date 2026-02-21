@@ -23,6 +23,7 @@ message AuditEntry {
   string prev_hash       = 12; // SHA-256 of previous entry's signature (chain link)
   string signature       = 13; // Ed25519 signature over canonical entry
   string public_key      = 14; // signer's public key (SPKI PEM)
+  string nonce           = 15; // UUID nonce for replay protection
 }
 
 enum Direction {
