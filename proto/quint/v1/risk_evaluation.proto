@@ -114,6 +114,16 @@ message RiskAssessment {
   optional int32 graph_score = 11;
   optional int32 llm_score   = 12;
   bool           llm_fallback = 13;
+
+  // Score breakdown per check (source, delta, reason)
+  repeated ScoreComponent score_components = 14;
+}
+
+// Individual score contribution from a policy check.
+message ScoreComponent {
+  string source = 1; // check name, e.g. "pii_access", "scope"
+  int32  delta  = 2; // score contribution
+  string reason = 3; // human-readable explanation
 }
 
 // ── Request / Response ──────────────────────────────────────────
@@ -127,6 +137,8 @@ message EvaluateRiskRequest {
 message EvaluateRiskResponse {
   RiskAssessment assessment = 1;
   string         request_id = 2;
+  string         event_id   = 3; // Quint-assigned event UUID
+  string         status     = 4; // "scored" | "pending" | "failed"
 }
 
 // Batch evaluation
