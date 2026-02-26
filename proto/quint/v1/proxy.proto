@@ -5,6 +5,7 @@ package quint.v1;
 option go_package = "github.com/Quint-Security/quint-proto/gen/go/quint/v1;quintv1";
 
 import "quint/v1/audit.proto";
+import "quint/v1/common.proto";
 import "quint/v1/policy.proto";
 
 // ── Proxy Messages ──────────────────────────────────────────────
@@ -41,7 +42,7 @@ message PolicyDecision {
 
 // For future use: if Quint evolves beyond stdio to a daemon model,
 // the CLI and UI can communicate with the proxy over gRPC.
-service QuintProxy {
+service QuintProxyService {
   // Query the audit log
   rpc QueryAuditLog(QueryAuditLogRequest) returns (QueryAuditLogResponse);
   // Verify audit entry signatures and chain

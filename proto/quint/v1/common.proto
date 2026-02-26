@@ -63,6 +63,39 @@ enum LogLevel {
   LOG_LEVEL_ERROR       = 4;
 }
 
+// ── Action Taxonomy ─────────────────────────────────────────────
+// Canonical action naming: domain:scope:verb
+
+enum ActionDomain {
+  ACTION_DOMAIN_UNSPECIFIED = 0;
+  ACTION_DOMAIN_MCP         = 1;
+  ACTION_DOMAIN_TOOL        = 2;
+  ACTION_DOMAIN_DATA        = 3;
+  ACTION_DOMAIN_AUTH        = 4;
+  ACTION_DOMAIN_NET         = 5;
+  ACTION_DOMAIN_SYS         = 6;
+  ACTION_DOMAIN_AGENT       = 7;
+}
+
+enum DataClassification {
+  DATA_CLASSIFICATION_UNSPECIFIED = 0;
+  DATA_CLASSIFICATION_PUBLIC       = 1;
+  DATA_CLASSIFICATION_INTERNAL     = 2;
+  DATA_CLASSIFICATION_PII          = 3;
+  DATA_CLASSIFICATION_PII_SENSITIVE = 4;
+  DATA_CLASSIFICATION_FINANCIAL    = 5;
+  DATA_CLASSIFICATION_HEALTH       = 6;
+  DATA_CLASSIFICATION_AUTH         = 7;
+  DATA_CLASSIFICATION_LEGAL        = 8;
+}
+
+enum MCPTransport {
+  MCP_TRANSPORT_UNSPECIFIED     = 0;
+  MCP_TRANSPORT_STDIO           = 1;
+  MCP_TRANSPORT_SSE             = 2;
+  MCP_TRANSPORT_STREAMABLE_HTTP = 3;
+}
+
 // ── MCP tool call ───────────────────────────────────────────────
 
 message McpToolCall {

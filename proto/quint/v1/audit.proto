@@ -4,6 +4,8 @@ package quint.v1;
 
 option go_package = "github.com/Quint-Security/quint-proto/gen/go/quint/v1;quintv1";
 
+import "quint/v1/common.proto";
+
 // ── Audit Log ───────────────────────────────────────────────────
 
 // A single signed, chain-linked audit entry.
@@ -24,19 +26,6 @@ message AuditEntry {
   string signature       = 13; // Ed25519 signature over canonical entry
   string public_key      = 14; // signer's public key (SPKI PEM)
   string nonce           = 15; // UUID nonce for replay protection
-}
-
-enum Direction {
-  DIRECTION_UNSPECIFIED = 0;
-  DIRECTION_REQUEST     = 1;
-  DIRECTION_RESPONSE    = 2;
-}
-
-enum Verdict {
-  VERDICT_UNSPECIFIED = 0;
-  VERDICT_ALLOW       = 1;
-  VERDICT_DENY        = 2;
-  VERDICT_PASSTHROUGH  = 3;
 }
 
 // A bundle of audit entries for export and offline verification.

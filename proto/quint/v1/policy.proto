@@ -4,6 +4,8 @@ package quint.v1;
 
 option go_package = "github.com/Quint-Security/quint-proto/gen/go/quint/v1;quintv1";
 
+import "quint/v1/common.proto";
+
 // ── Policy Configuration ────────────────────────────────────────
 
 // Top-level policy config. Loaded from policy.json / policy.pb.
@@ -12,6 +14,9 @@ message PolicyConfig {
   string         data_dir  = 2;
   LogLevel       log_level = 3;
   repeated ServerPolicy servers = 4;
+
+  // Taxonomy-aware risk scoring policies
+  optional ScoringPolicy scoring = 5;
 }
 
 message ServerPolicy {
@@ -25,16 +30,30 @@ message ToolRule {
   Action action = 2;
 }
 
-enum Action {
-  ACTION_UNSPECIFIED = 0;
-  ACTION_ALLOW       = 1;
-  ACTION_DENY        = 2;
-}
+// ── Scoring Policy ──────────────────────────────────────────────
+// Policies used by the infra risk scoring engine.
 
-enum LogLevel {
-  LOG_LEVEL_UNSPECIFIED = 0;
-  LOG_LEVEL_DEBUG       = 1;
-  LOG_LEVEL_INFO        = 2;
-  LOG_LEVEL_WARN        = 3;
-  LOG_LEVEL_ERROR       = 4;
+message ScoringPolicy {
+  // Fields flagged as PII/sensitive (exact name match)
+  repeated string sensitive_fields = 1;
+
+  // Exact tool/action allowlist (legacy format, e.g. "tool_call:search")
+  repeated string allowed_tools = 2;
+
+  // Exact action blocklist (legacy format, e.g. "tool_call:delete_all")
+  repeated string blocked_actions = 3;
+
+  // Glob patterns for allowed actions (e.g. "mcp:github:*", "tool:editor:*")
+  repeated string allowed_action_patterns = 4;
+
+  // Glob patterns for blocked actions (e.g. "*:*:*.delete", "data:*:export.*")
+  // Blocked patterns always take precedence over allowed patterns.
+  repeated string blocked_action_patterns = 5;
+
+  // Data classifications that trigger PII/sensitivity checks
+  // (e.g. DATA_CLASSIFICATION_PII, DATA_CLASSIFICATION_FINANCIAL)
+  repeated DataClassification sensitive_classifications = 6;
+
+  // Free-form custom rules (JSON-encoded)
+  bytes custom_rules = 7;
 }
