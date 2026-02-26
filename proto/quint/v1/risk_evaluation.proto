@@ -1,0 +1,175 @@
+syntax = "proto3";
+
+package quint.v1;
+
+option go_package = "github.com/Quint-Security/quint-proto/gen/go/quint/v1;quintv1";
+
+import "google/protobuf/timestamp.proto";
+import "quint/v1/common.proto";
+
+// ── Risk Evaluation ────────────────────────────────────────────
+
+enum RiskLevel {
+  RISK_LEVEL_UNSPECIFIED = 0;
+  RISK_LEVEL_NONE        = 1;
+  RISK_LEVEL_LOW         = 2;
+  RISK_LEVEL_MEDIUM      = 3;
+  RISK_LEVEL_HIGH        = 4;
+  RISK_LEVEL_CRITICAL    = 5;
+}
+
+// ── Nested context messages ─────────────────────────────────────
+
+// Metadata about the AI agent performing the action.
+message AgentInfo {
+  string agent_id    = 1;
+  optional string agent_type = 2; // e.g. "coding_assistant", "data_pipeline"
+  optional string framework  = 3; // e.g. "langchain", "crewai"
+  optional string model      = 4; // e.g. "claude-3", "gpt-4o"
+}
+
+// Session context for the agent interaction.
+message SessionInfo {
+  string session_id = 1;
+  optional string user_id    = 2;
+  optional google.protobuf.Timestamp started_at = 3;
+}
+
+// Resource being accessed or modified.
+message TargetInfo {
+  optional string resource_type = 1; // e.g. "repository", "table", "s3_bucket"
+  optional string resource_id   = 2; // e.g. "quint/infra", "customers_table"
+  optional int32  sensitivity_level = 3; // 0-4
+}
+
+// MCP server context for tool calls via Model Context Protocol.
+message MCPContext {
+  string server_name = 1;
+  optional string server_id   = 2;
+  optional MCPTransport transport = 3;
+  bool   is_verified = 4;
+  optional string tool_name  = 5;
+}
+
+// A data field with optional sensitivity classification.
+message ClassifiedField {
+  string field = 1;
+  optional DataClassification classification = 2;
+}
+
+// ── Action context ──────────────────────────────────────────────
+
+// Context describing the AI agent action to evaluate.
+// Supports both legacy flat fields and canonical taxonomy structure.
+message ActionContext {
+  // Canonical action string (domain:scope:verb, e.g. "mcp:github:pr.create").
+  // Legacy formats (e.g. "tool_call:query") are also accepted.
+  string action = 1;
+
+  // Legacy flat fields (backward compat — prefer nested messages below)
+  string tool_name  = 2; // Deprecated: use action field
+  string tool_input = 3; // Deprecated: use parameters
+  string resource   = 4; // Deprecated: use target.resource_id
+  string user_id    = 5; // Deprecated: use session.user_id
+  repeated string policies = 6; // Deprecated: use PolicyConfig
+
+  // Canonical nested context
+  optional AgentInfo   agent       = 7;
+  optional SessionInfo session     = 8;
+  optional TargetInfo  target      = 9;
+  optional MCPContext  mcp_context = 10;
+
+  // Data fields accessed, with optional classification.
+  // Accepts both plain strings (via legacy_data_fields) and classified entries.
+  repeated string          legacy_data_fields = 11; // Plain field names (backward compat)
+  repeated ClassifiedField data_fields        = 12; // Classified fields (canonical)
+
+  // Additional context
+  string user_context                      = 13; // User's original request
+  repeated string conversation_history     = 14; // Prior conversation turns
+  bytes  parameters                        = 15; // JSON-encoded action parameters
+  map<string, string> metadata             = 16;
+  repeated string preceding_actions        = 17; // Prior actions in domain:scope:verb format
+  google.protobuf.Timestamp timestamp      = 18;
+}
+
+// ── Risk assessment ─────────────────────────────────────────────
+
+// Result of a risk evaluation.
+message RiskAssessment {
+  RiskLevel       level         = 1;
+  float           confidence    = 2; // 0.0–1.0
+  string          reasoning     = 3;
+  repeated string mitigations   = 4;
+  optional string justification = 5; // plaintext, max 3 sentences
+
+  // Extended scoring details
+  int32           score            = 6;  // 0-100
+  repeated string violations       = 7;
+  repeated string compliance_refs  = 8;
+  string          scoring_source   = 9;  // "graph_reasoner" | "graph_reasoner+llm"
+  repeated string behavioral_flags = 10;
+
+  // Component scores
+  optional int32 graph_score = 11;
+  optional int32 llm_score   = 12;
+  bool           llm_fallback = 13;
+
+  // Score breakdown per check (source, delta, reason)
+  repeated ScoreComponent score_components = 14;
+}
+
+// Individual score contribution from a policy check.
+message ScoreComponent {
+  string source = 1; // check name, e.g. "pii_access", "scope"
+  int32  delta  = 2; // score contribution
+  string reason = 3; // human-readable explanation
+}
+
+// ── Request / Response ──────────────────────────────────────────
+
+message EvaluateRiskRequest {
+  ActionContext context    = 1;
+  string        request_id = 2; // optional client-supplied correlation ID
+  string        customer_id = 3;
+}
+
+message EvaluateRiskResponse {
+  RiskAssessment assessment = 1;
+  string         request_id = 2;
+  string         event_id   = 3; // Quint-assigned event UUID
+  string         status     = 4; // "scored" | "pending" | "failed"
+}
+
+// Batch evaluation
+
+message BatchEvaluateRiskRequest {
+  repeated EvaluateRiskRequest requests = 1;
+}
+
+message BatchEvaluateRiskResponse {
+  repeated EvaluateRiskResponse responses = 1;
+}
+
+// Streaming wrappers (buf lint requires unique request/response types per RPC)
+
+message StreamEvaluateRiskRequest {
+  EvaluateRiskRequest request = 1;
+}
+
+message StreamEvaluateRiskResponse {
+  EvaluateRiskResponse response = 1;
+}
+
+// ── Service ─────────────────────────────────────────────────────
+
+service RiskEvaluationService {
+  // Evaluate the risk of a single AI agent action.
+  rpc EvaluateRisk(EvaluateRiskRequest) returns (EvaluateRiskResponse);
+
+  // Evaluate a batch of actions.
+  rpc BatchEvaluateRisk(BatchEvaluateRiskRequest) returns (BatchEvaluateRiskResponse);
+
+  // Bi-directional stream for real-time evaluation.
+  rpc StreamEvaluateRisk(stream StreamEvaluateRiskRequest) returns (stream StreamEvaluateRiskResponse);
+}
