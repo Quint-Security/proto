@@ -95,6 +95,28 @@ message ActionContext {
 
 // ── Risk assessment ─────────────────────────────────────────────
 
+// Per-layer score breakdown from the 4-layer risk scoring pipeline.
+message ScoreDecomposition {
+  // L1: Intrinsic action risk (deterministic). 0-100.
+  float l1_intrinsic = 1;
+  // L2: Structural GNN score (learned). 0-100.
+  optional float l2_gnn = 2;
+  // L3: Policy violation score (forward-chaining engine). 0-100.
+  optional float l3_policy = 3;
+  // L4: Temporal anomaly modifier (multiplicative). 0.5-2.0.
+  float l4_temporal = 4;
+  // Raw weighted score before temporal modifier.
+  float raw_weighted = 5;
+  // Layer weights used for composition.
+  float w1 = 6;
+  float w2 = 7;
+  float w3 = 8;
+  // GNN model confidence (max class probability).
+  optional float gnn_confidence = 9;
+  // Overall confidence: min(gnn_confidence, policy_clarity, data_completeness).
+  float confidence = 10;
+}
+
 // Result of a risk evaluation.
 message RiskAssessment {
   RiskLevel       level         = 1;
@@ -114,6 +136,9 @@ message RiskAssessment {
   optional int32 graph_score = 11;
   optional int32 llm_score   = 12;
   bool           llm_fallback = 13;
+
+  // 4-layer score decomposition
+  optional ScoreDecomposition score_decomposition = 14;
 }
 
 // ── Request / Response ──────────────────────────────────────────
