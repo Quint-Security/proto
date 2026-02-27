@@ -140,7 +140,7 @@ message RiskAssessment {
   // 4-layer score decomposition
   optional ScoreDecomposition score_decomposition = 14;
   // Score breakdown per check (source, delta, reason)
-  repeated ScoreComponent score_components = 14;
+  repeated ScoreComponent score_components = 15;
 }
 
 // Individual score contribution from a policy check.
